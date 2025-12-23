@@ -1,34 +1,22 @@
-//server.js
+// src/app.js
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import authRoutes from './routes/auth.routes.js';
+import deptRoutes from './routes/department.routes.js';
+import complaintRoutes from './routes/complaints.routes.js';
 
-const express = require('express');
-const cors = require('cors');
-const fs = require('fs');
-
-require('dotenv').config();
-
-const authRoutes = require('./routes/auth.routes');
-const complaintRoutes = require('./routes/complaint.routes');
-const adminRoutes = require('./routes/admin.routes');
-
+dotenv.config();
 const app = express();
+app.use(cors());
+app.use(express.json());
 
-//create a upload folder for storing image , if not exist create it
-if(!fs.existsSync('uploads')){
-    fs.mkdirSync('uploads');
-}
+app.use('/auth', authRoutes);
+app.use('/departments', deptRoutes);
+app.use('/complaints', complaintRoutes);
 
+app.get('/health', (_, res) => res.json({ ok: true }));
 
-app.use(cors()); //allow requests form frontend 
-app.use(express.json()); //parse JSON body
-app.use('/uploads' , express.static('uploads')); //serve or save uploaded files
-
-
-//Routes
-
-app.use('/api/auth' , authRoutes);
-app.use('/api/complaints' , complaintRoutes);
-// app.use('/api/admin' , adminRoutes);
-
-const Port = process.env.PORT || 5000;
-
-app.listen(Port,()=>console.log(`Server running on port ${Port}`));
+app.listen(process.env.PORT, () =>
+  console.log(`Server on http://localhost:${process.env.PORT}`)
+);
