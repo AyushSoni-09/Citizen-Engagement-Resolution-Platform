@@ -1,29 +1,24 @@
 //middleware.auth.middleware.js
 
-const jwt = require('jsonwebtoken');
-require('dotenv').config();
+import jwt from 'jsonwebtoken';
 
-module.exports = function (requiredRole=null){
-    return (req, res , next)=>{
-        try{
-            const authHeader = req.header['authorization'];
-            if(!authHeader) return res.status(401).json({message:'No token povided'});
+export function auth(req, res, next) {
+  const h = req.headers.authorization || '';
+  const token = h.startsWith('Bearer ') ? h.slice(7) : null;
+  if (!token) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
+    next();
+  } catch {
+    res.status(401).json({ error: 'Invalid token' });
+  }
+}
 
-            const token = authHeader.split(' ')[1]; //Bearer <token>
-            if(!token) return res.status(401).json({message:'Malformed token'});
-
-            const decoded = jwt.verify(token , process.env.JWT_SECRET);
-            req.user={ id:decoded.id , role: decoded.role};
-
-            if( requiredRole && decoded.role !== requiredRole){
-                return res.status(403).json({message:'Forbidden : insufficient rights'});
-            }
-
-            next();
-        }
-        catch(err){
-            console.error('Auth error:' , err.message);
-            return res.status(401).json({message : ' Invalid or expired token'});            
-        }
-    };
-};
+export function authorize(...allowedRoles) {
+  return (req, res, next) => {
+    const userRoles = req.user.roles || [];
+    const hasRole = userRoles.some(r => allowedRoles.includes(r));
+    if (!hasRole) return res.status(403).json({ error: 'Forbidden' });
+    next();
+  };
+}
